@@ -7,14 +7,15 @@ document.addEventListener("DOMContentLoaded", () => {
   const description = document.getElementById("description");
 
   // Function to fetch latitude and longitude using a geocoding API
-  async function fetchCoordinates(city) {
+  async function fetchCoordinates(city, state) {
     try {
+      const query = `${city}, ${state}`; // Combine city and state
       const response = await fetch(
-        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}`
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}`
       );
 
       if (!response.ok) {
-        throw new Error("City not found");
+        throw new Error("City and state not found");
       }
 
       const data = await response.json();
@@ -22,7 +23,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const { latitude, longitude } = data.results[0];
         return { latitude, longitude };
       } else {
-        throw new Error("City not found");
+        throw new Error("City and state not found");
       }
     } catch (error) {
       alert(error.message);
@@ -50,25 +51,35 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // Function to update the weather information on the page
-  function updateWeather(city, weather) {
-    cityName.textContent = city;
+  function updateWeather(city, state, weather) {
+    cityName.textContent = `${city}, ${state}`;
     temperature.textContent = `Temperature: ${weather.temperature}°C`;
-    description.textContent = `Condition: ${weather.weathercode === 0 ? "Clear" : "Cloudy/Rainy"}`;
+    description.textContent = `Condition: ${
+      weather.weathercode === 0 ? "Clear" : "Cloudy/Rainy"
+    }`;
   }
 
   // Event listener for the search button
   searchButton.addEventListener("click", async () => {
-    const city = cityInput.value.trim();
-    if (city) {
-      const coordinates = await fetchCoordinates(city);
-      if (coordinates) {
-        const weather = await fetchWeather(coordinates.latitude, coordinates.longitude);
-        if (weather) {
-          updateWeather(city, weather);
+    const userInput = cityInput.value.trim();
+    if (userInput.includes(",")) {
+      const [city, state] = userInput.split(",").map((s) => s.trim());
+      if (city && state && state.length === 2) {
+        const coordinates = await fetchCoordinates(city, state);
+        if (coordinates) {
+          const weather = await fetchWeather(
+            coordinates.latitude,
+            coordinates.longitude
+          );
+          if (weather) {
+            updateWeather(city, state, weather);
+          }
         }
+      } else {
+        alert("Please enter a valid city and 2-letter state abbreviation (e.g., Austin, TX)");
       }
     } else {
-      alert("Please enter a city name");
+      alert("Please enter the city and state in the format: City, State (e.g., Austin, TX)");
     }
   });
 });
